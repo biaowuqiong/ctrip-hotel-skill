@@ -4,7 +4,7 @@
 >
 > 🔌 支持**无感模式**（窗口移至屏幕外，不遮挡工作区）和**普通模式**（窗口可见，适合录屏）。
 
-AI Skill for querying hotel prices on Ctrip via Playwright MCP and real browser automation, with optional headless-like invisible mode.
+AI Skill for querying hotel prices on Ctrip via Playwright MCP and real browser automation, with optional invisible mode.
 
 ---
 
@@ -46,7 +46,9 @@ powershell -Command "Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Applic
 
 ## 演示 / Demo
 
-[演示视频] · AI 全程操控携程：搜索 → 筛选档次 → 筛选双床房 → 提取实时价格，无需手动操作。
+[![自动化酒店查询Skill](https://img.shields.io/badge/bilibili-演示视频-00A1D6?logo=bilibili)](https://www.bilibili.com/video/BV1xCJc6hEAz/)
+
+> AI 全程操控携程：搜索 → 筛选档次 → 筛选双床房 → 查看实时价格。
 
 ## 许可 / License
 
