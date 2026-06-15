@@ -24,27 +24,24 @@ description: 通过 Playwright MCP 操控浏览器，在携程搜索酒店并提
 
 ### 2. 启动浏览器调试模式
 
-调试 Edge 使用**独立配置目录**（`C:\temp\edge-debug`），与日常 Edge 互不干扰。
+调试 Edge 使用独立配置目录，与日常 Edge 互不干扰。**必须设置 1920×1080 窗口大小**，否则携程筛选面板可能折叠。
 
-**无感模式**（推荐日常使用，窗口在屏幕外）：
-
-```bash
-powershell -Command "Stop-Process -Name msedge -Force -ErrorAction SilentlyContinue"
-powershell -Command "Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--remote-debugging-port=9222','--user-data-dir=C:\temp\edge-debug','--disable-background-mode','--no-first-run','--window-position=-32000,-32000','https://www.ctrip.com'"
-```
-
-**普通模式**（窗口可见，适合录屏/调试/首次登录）：
+**无感模式**（日常使用，窗口移到屏幕左侧外）：
 
 ```bash
 powershell -Command "Stop-Process -Name msedge -Force -ErrorAction SilentlyContinue"
-powershell -Command "Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--remote-debugging-port=9222','--user-data-dir=C:\temp\edge-debug','--disable-background-mode','--no-first-run','https://www.ctrip.com'"
+powershell -Command "Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--remote-debugging-port=9222','--user-data-dir=C:\temp\edge-debug','--disable-background-mode','--no-first-run','--window-size=1920,1080','--window-position=-2000,0','https://www.ctrip.com'"
 ```
 
-> **为什么用独立配置目录？** 如果共用默认配置，你日常打开的新 Edge 窗口会附加到调试实例，继承其窗口位置（屏幕外）。独立配置彻底隔离两个环境：调试窗口移出屏幕操控，日常窗口正常工作。
->
-> **首次使用**：先用普通模式启动一次，在可见窗口中登录携程（扫码即可）。之后切换无感模式，登录态永久保留。
+> `--window-size=1920,1080` 确保携程筛选栏完整渲染，避免 `aria-hidden` 导致点击超时。
+> `--window-position=-2000,0` 将窗口移到屏幕左侧外（适配 1920 宽度）。
 
-Chrome / macOS 同理，替换浏览器路径和参数即可。
+**普通模式**（首次登录/录屏）：
+
+```bash
+powershell -Command "Stop-Process -Name msedge -Force -ErrorAction SilentlyContinue"
+powershell -Command "Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--remote-debugging-port=9222','--user-data-dir=C:\temp\edge-debug','--disable-background-mode','--no-first-run','--window-size=1920,1080','https://www.ctrip.com'"
+```
 
 ### 3. 确认端口就绪
 
@@ -52,12 +49,18 @@ Chrome / macOS 同理，替换浏览器路径和参数即可。
 curl http://127.0.0.1:9222/json/version
 ```
 
+### 4. 玩法：目的地输入技巧
+
+- 城市搜索：直接输入城市名（如「宝鸡」）
+- 景区周边：直接输入景区名（如「太白山」），携程自动解析为对应 District
+- 搜索后先 `browser_resize` 到 1920×1080 确保筛选栏可见
+
 ## 查价流程
 
-### Step 1：导航 → 搜索城市
+### Step 1：导航 → 搜索
 
 ```
-mcp__playwright__browser_navigate → https://www.ctrip.com/
+mcp__playwright__browser_resize → 1920×1080
 mcp__playwright__browser_type → target="#hotels-destination" → text="目的地"
 mcp__playwright__browser_click → target="getByText('搜索', { exact: true })"
 ```
@@ -71,7 +74,7 @@ mcp__playwright__browser_click → target="text=5钻/星"
 mcp__playwright__browser_click → target="getByRole('radio', { name: '双床房' })"
 ```
 
-### Step 3：点进详情看价格
+### Step 3：查看详情
 
 ```
 mcp__playwright__browser_click → target="text=酒店名称"
@@ -82,9 +85,7 @@ mcp__playwright__browser_evaluate → function="() => document.body.innerText.su
 ## 注意事项
 
 - `#hotels-destination` 是携程酒店搜索框唯一 ID
-- `{ exact: true }` 避免匹配多余元素
-- 双床房筛选按钮用 `getByRole('radio', { name: '双床房' })`
-- 档次需多选（3/4/5 钻依次点击）
-- 启动前必须 `Stop-Process` 杀死所有 Edge 进程
+- 端口启动前必须杀死所有 Edge 进程
+- `--user-data-dir=C:\temp\edge-debug` 隔离调试/日常配置
+- `--window-size=1920,1080` 必须设置，小窗口会导致筛选栏 `aria-hidden`
 - `--disable-background-mode` 防止后台进程复活
-- 调试 Edge 重启后 MCP 需重连（`install_source` 重新安装一次即可）
