@@ -24,33 +24,33 @@ description: 通过 Playwright MCP 操控浏览器，在携程搜索酒店并提
 
 ### 2. 启动浏览器调试模式
 
-提供两种模式，按需选择：
+调试 Edge 使用**独立配置目录**（`C:\temp\edge-debug`），与日常 Edge 互不干扰。
 
-**普通模式**（窗口可见，适合录屏/调试）：
+**无感模式**（推荐日常使用，窗口在屏幕外）：
+
 ```bash
-powershell -Command "taskkill /f /im msedge.exe"; sleep 2
-powershell -Command "Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--remote-debugging-port=9222','https://www.ctrip.com'"
+powershell -Command "Stop-Process -Name msedge -Force -ErrorAction SilentlyContinue"
+powershell -Command "Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--remote-debugging-port=9222','--user-data-dir=C:\temp\edge-debug','--disable-background-mode','--no-first-run','--window-position=-32000,-32000','https://www.ctrip.com'"
 ```
 
-**无感模式**（窗口移到屏幕外，不遮挡工作区，推荐日常使用）：
+**普通模式**（窗口可见，适合录屏/调试/首次登录）：
+
 ```bash
-powershell -Command "taskkill /f /im msedge.exe"; sleep 2
-powershell -Command "Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--remote-debugging-port=9222','--window-position=-32000,-32000','https://www.ctrip.com'"
+powershell -Command "Stop-Process -Name msedge -Force -ErrorAction SilentlyContinue"
+powershell -Command "Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--remote-debugging-port=9222','--user-data-dir=C:\temp\edge-debug','--disable-background-mode','--no-first-run','https://www.ctrip.com'"
 ```
 
-> `--window-position=-32000,-32000` 将窗口移到屏幕外。浏览器正常运行，完全不受影响，只是你看不到 UI。如需登录或调试，切换回普通模式重启即可。登录态保留。
+> **为什么用独立配置目录？** 如果共用默认配置，你日常打开的新 Edge 窗口会附加到调试实例，继承其窗口位置（屏幕外）。独立配置彻底隔离两个环境：调试窗口移出屏幕操控，日常窗口正常工作。
+>
+> **首次使用**：先用普通模式启动一次，在可见窗口中登录携程（扫码即可）。之后切换无感模式，登录态永久保留。
 
-Chrome / macOS 同理，加上 `--window-position=-32000,-32000` 即可。
+Chrome / macOS 同理，替换浏览器路径和参数即可。
 
 ### 3. 确认端口就绪
 
 ```bash
 curl http://127.0.0.1:9222/json/version
 ```
-
-### 4. 登录携程
-
-在浏览器中手动登录。
 
 ## 查价流程
 
@@ -84,5 +84,7 @@ mcp__playwright__browser_evaluate → function="() => document.body.innerText.su
 - `#hotels-destination` 是携程酒店搜索框唯一 ID
 - `{ exact: true }` 避免匹配多余元素
 - 双床房筛选按钮用 `getByRole('radio', { name: '双床房' })`
-- 档次筛选多选：依次点击 3/4/5 钻
-- 启动前完全关闭浏览器进程
+- 档次需多选（3/4/5 钻依次点击）
+- 启动前必须 `Stop-Process` 杀死所有 Edge 进程
+- `--disable-background-mode` 防止后台进程复活
+- 调试 Edge 重启后 MCP 需重连（`install_source` 重新安装一次即可）
