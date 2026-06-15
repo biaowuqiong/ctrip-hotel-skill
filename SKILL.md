@@ -24,70 +24,65 @@ description: 通过 Playwright MCP 操控浏览器，在携程搜索酒店并提
 
 ### 2. 启动浏览器调试模式
 
-**Edge（Windows）：**
+提供两种模式，按需选择：
+
+**普通模式**（窗口可见，适合录屏/调试）：
 ```bash
 powershell -Command "taskkill /f /im msedge.exe"; sleep 2
 powershell -Command "Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--remote-debugging-port=9222','https://www.ctrip.com'"
 ```
 
-**Chrome（Windows）：**
+**无感模式**（窗口移到屏幕外，不遮挡工作区，推荐日常使用）：
 ```bash
-powershell -Command "taskkill /f /im chrome.exe"; sleep 2
-powershell -Command "Start-Process 'chrome' -ArgumentList '--remote-debugging-port=9222','https://www.ctrip.com'"
+powershell -Command "taskkill /f /im msedge.exe"; sleep 2
+powershell -Command "Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--remote-debugging-port=9222','--window-position=-32000,-32000','https://www.ctrip.com'"
 ```
 
-**Chrome（macOS）：**
-```bash
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 https://www.ctrip.com
-```
+> `--window-position=-32000,-32000` 将窗口移到屏幕外。浏览器正常运行，完全不受影响，只是你看不到 UI。如需登录或调试，切换回普通模式重启即可。登录态保留。
 
-确认端口就绪：
+Chrome / macOS 同理，加上 `--window-position=-32000,-32000` 即可。
+
+### 3. 确认端口就绪
+
 ```bash
 curl http://127.0.0.1:9222/json/version
 ```
 
-### 3. 登录携程
+### 4. 登录携程
 
-在打开的浏览器窗口中手动登录携程账户。
+在浏览器中手动登录。
 
 ## 查价流程
 
-### Step 1：导航
+### Step 1：导航 → 搜索城市
 
 ```
 mcp__playwright__browser_navigate → https://www.ctrip.com/
-```
-
-### Step 2：搜索城市
-
-```
-mcp__playwright__browser_type → target="#hotels-destination" → text="目的地城市名"
+mcp__playwright__browser_type → target="#hotels-destination" → text="目的地"
 mcp__playwright__browser_click → target="getByText('搜索', { exact: true })"
 ```
 
-### Step 3：筛选档次
-
-⚠️ 必须同时选中三个级别，而非仅选一个：
+### Step 2：筛选（舒适及以上 + 双床房）
 
 ```
-mcp__playwright__browser_click → target="text=3钻/星"       # 舒适
-mcp__playwright__browser_click → target="text=4钻/星"       # 高档
-mcp__playwright__browser_click → target="text=5钻/星"       # 豪华
+mcp__playwright__browser_click → target="text=3钻/星"
+mcp__playwright__browser_click → target="text=4钻/星"
+mcp__playwright__browser_click → target="text=5钻/星"
 mcp__playwright__browser_click → target="getByRole('radio', { name: '双床房' })"
 ```
 
-### Step 4：查看详情并提取价格
+### Step 3：点进详情看价格
 
 ```
-mcp__playwright__browser_click → target="text=酒店名称"     # 点进详情
-mcp__playwright__browser_tabs → action="select", index=1    # 切到新标签
+mcp__playwright__browser_click → target="text=酒店名称"
+mcp__playwright__browser_tabs → action="select", index=1
 mcp__playwright__browser_evaluate → function="() => document.body.innerText.substring(0, 5000)"
 ```
 
 ## 注意事项
 
-- `#hotels-destination` 是携程酒店搜索框的唯一 CSS ID
-- `text=搜索` 需用 `{ exact: true }` 避免匹配其他含「搜索」的元素
-- 「双床房」筛选按钮需用 `getByRole('radio', { name: '双床房' })` 定位
-- 档次筛选需依次点击 3钻/4钻/5钻，Ctrip 支持多选
-- 浏览器启动前须完全关闭所有进程，否则调试端口参数不生效
+- `#hotels-destination` 是携程酒店搜索框唯一 ID
+- `{ exact: true }` 避免匹配多余元素
+- 双床房筛选按钮用 `getByRole('radio', { name: '双床房' })`
+- 档次筛选多选：依次点击 3/4/5 钻
+- 启动前完全关闭浏览器进程
